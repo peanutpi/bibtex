@@ -1,0 +1,206 @@
+<h1>Amada Echeverria</h1>
+
+<h2>Add Book</h2>
+
+<form id="create-form">
+  <input type="hidden" name="id" id="id">
+  <div class="fb-text form-group field-author">
+    <label class="fb-text-label">Author * : </label><input type="text" class="form-control" name="author" id="author" required>
+  </div>
+  <div class="fb-text form-group field-title">
+    <label class="fb-text-label">Title * : </label><input type="text" class="form-control" name="title" id="title" required>
+  </div>
+  <div class="fb-text form-group field-journal">
+    <label class="fb-text-label">Journal * : </label><input type="text" class="form-control" name="journal" id="journal" required>
+  </div>
+  <div class="fb-text form-group field-author">
+    <label class="fb-text-label">Year : </label><input type="number" class="form-control" name="year" id="year">
+  </div>
+  <div class="fb-number form-group field-pages">
+    <label class="fb-number-label">Pages : </label><input type="number" class="form-control" name="pages" min="1" id="pages">
+  </div>
+  <div class="fb-text form-group field-number">
+    <label class="fb-text-label">Number : </label><input type="text" class="form-control" name="number" id="number">
+  </div>
+  <div class="fb-number form-group field-volume">
+    <label class="fb-number-label">Volume : </label><input type="number" class="form-control" name="volume" min="1" id="volume">
+  </div>
+  <div class="fb-button form-group field-submit">
+    <button type="submit" class="btn btn-primary" name="submit" value="submit" id="submit">Save It</button>
+  </div>
+</form>
+
+<br />
+<br />
+<br />
+<h2>Bibiliography</h2>
+<form id="search-form">
+  <div class="fb-text form-group field-search">
+    <input type="text" class="form-control" name="search" id="search-input">
+    <button onclick='searchBook();return false;' id="search">Search</button>
+    Search in author, title & Journal
+  </div>
+</form>
+<form id="order-form">
+  <div class="fb-radio-group form-group field-sort">
+    <label class="fb-radio-group-label">Order By :</label>
+    <div class="radio-group">
+      <label for="sort-0"><input name="sort" id="sort-0" value="author" type="radio">Author</label>
+      <label for="sort-1"><input name="sort" id="sort-1" value="title" type="radio">Title</label>
+      <label for="sort-2"><input name="sort" id="sort-2" value="journal" type="radio">Journal</label>
+      <label for="sort-3"><input name="sort" id="sort-3" value="year" type="radio">Year</label>
+      <label for="sort-4"><input name="sort" id="sort-4" value="pages" type="radio">Pages</label>
+      <label for="sort-5"><input name="sort" id="sort-5" value="volume" type="radio">Volume</label>
+    </div>
+    <button id="order" onclick='listSortedBook();return false;'>Order It</button>
+  </div>
+</form>
+
+<a href="/book.csv" target="_blank" >Export</a>
+<div id="list-book">
+<table id="list-book-table" border="1">
+<thead>
+    <tr>
+        <th>Id</th>
+        <th>Author</th>
+        <th>Title</th>
+        <th>Journal</th>
+        <th>Year</th>
+        <th>Pages</th>
+        <th>Number</th>
+        <th>Volume</th>
+        <th>Edit</th>
+        <th>Delete</th>
+    </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+</table>
+        
+</div>
+
+<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+<script>
+$("#create-form").submit(function(event) {
+	createOrUpdateBook();
+    event.preventDefault();
+});
+
+function createOrUpdateBook(){
+	var url = "/book";
+	var reqType = "POST";
+	var id = $('#id').val();
+	if(id){
+		url = url+"/"+id;
+		reqType="PUT"
+	}
+	var data = new Object();
+	data.author = $('#author').val();
+	data.title = $('#title').val();
+	data.journal = $('#journal').val();
+	data.year = $('#year').val();
+	data.pages = $('#pages').val();
+	data.number = $('#number').val();
+	data.volume = $('#volume').val();
+	$.ajax({
+		  type: reqType,
+		  url: url,
+		  data: JSON.stringify(data),
+		  success: function(){
+			  clearAllBooks();
+			  loadAllBooks();
+		  },
+		  error: function(XMLHttpRequest, textStatus, errorThrown) { 
+		    alert("ERROR : " + JSON.parse(XMLHttpRequest.responseText).message);
+		  },
+		  contentType: "application/json; charset=utf-8"
+		});
+}
+
+$(document).ready(function() {
+	loadAllBooks();
+});
+
+function clearAllBooks(){
+	$('#list-book-table tbody tr').remove();
+}
+
+function loadAllBooks(sortOn, query){
+	var url = "/book";
+	if(sortOn){
+		url = url+"?sort="+sortOn;
+	}
+	
+	if(query){
+		url=url+"?q="+query;
+	}
+	$.get(url, function(data, status) {
+        drawTable(data);
+    });
+}
+
+function loadBook(id){
+	var url = "/book/"+id;
+	$.get(url, function(data, status) {
+		$('#id').val(data.id);
+		$('#author').val(data.author);
+		$('#title').val(data.title);
+		$('#journal').val(data.journal);
+		$('#year').val(data.year);
+		$('#pages').val(data.pages);
+		$('#number').val(data.number);
+		$('#volume').val(data.volume);
+    });
+}
+
+function searchBook(){
+	var q = $('#search-input').val();
+	clearAllBooks();
+	loadAllBooks(null, q);
+	return false;
+}
+
+function drawTable(data) {
+    for (var i = 0; i < data.length; i++) {
+        drawRow(data[i]);
+    }
+}
+
+function listSortedBook(){
+	var sortOn = $('input:radio[name=sort]:checked').val();
+	
+	clearAllBooks();
+	loadAllBooks(sortOn);
+	return false;
+		
+}
+
+function drawRow(rowData) {
+    var row = $("<tr />");
+    $("#table-body").append(row);
+    row.append($("<td>" + rowData.id + "</td>"));
+    row.append($("<td>" + rowData.author + "</td>"));
+    row.append($("<td>" + rowData.title + "</td>"));
+    row.append($("<td>" + rowData.journal + "</td>"));
+    row.append($("<td>" + rowData.year + "</td>"));
+    row.append($("<td>" + rowData.pages + "</td>"));
+    row.append($("<td>" + rowData.number + "</td>"));
+    row.append($("<td>" + rowData.volume + "</td>"));
+    row.append($("<td><button name='edit' value='edit' id='edit'  onclick='editBook(" + rowData.id + ");'>Edit</button></td>"));
+    row.append($("<td><button name='delete' value='delete' id='delete' onclick='deleteBook(" + rowData.id + ");'>Delete</button></td>"));
+}
+
+function deleteBook(id) {
+    $.ajax({
+        url: '/book/' + id,
+        type: 'DELETE',
+        success: function() {
+        	clearAllBooks()
+        	loadAllBooks();
+        }
+    });
+}
+
+function editBook(id){
+	loadBook(id);
+}
+</script>
